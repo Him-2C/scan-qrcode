@@ -26,6 +26,12 @@ class AppDocment extends Document<AppDocmentProps> {
     return (
       <Html lang="th">
         <Head />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href={`https://fonts.googleapis.com/css2?family=Kodchasan:wght@400;600&display=swap`}
+          rel="stylesheet"
+        />
         {this.props.styleTags}
         <body>
           <Main />

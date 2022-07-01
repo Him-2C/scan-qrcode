@@ -1,26 +1,133 @@
 import type { NextPage } from "next";
 import Head from "next/head";
+import Image from "next/image";
+import QrScanner from "qr-scanner";
+import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 
 const Container = styled.div({
-  padding: "0 32px",
+  flex: 1,
+  display: "flex",
+  width: "100%",
+  minHeight: "100%",
 });
 
 const Main = styled.main({
-  minHeight: "100vh",
-  padding: "64px 0",
-  flex: 1,
+  width: "100%",
   display: "flex",
   flexDirection: "column",
-  justifyContent: "center",
   alignItems: "center",
+  padding: "16px",
+  margin: "auto",
 });
 
 const Title = styled.h1({
-  fontSize: "32px",
+  fontSize: "24px",
+  textAlign: "center",
+  fontWeight: "bold",
+  whiteSpace: "nowrap",
+  width: "100%",
+});
+
+const QrCodeDialog = styled.div({
+  position: "fixed",
+  inset: "0px",
+  height: "100%",
+  width: "100%",
+  zIndex: 100,
+});
+
+const QrCodeStream = styled.video<{ isStartScan: boolean }>((props) => ({
+  position: "fixed",
+  inset: "0px",
+  height: "100%",
+  width: "100%",
+  backgroundColor: "#000",
+  objectFit: "fill",
+  userSelect: "none",
+  transition: "all 300ms 0s ease-in-out",
+  marginTop: props.isStartScan ? "0px" : "100vh",
+}));
+
+const ImageLayout = styled.div({
+  width: "100%",
+  maxWidth: "320px",
+  margin: "auto",
+  paddingTop: "24px",
+});
+
+const ImageWrapper = styled.div({
+  position: "relative",
+  width: "100%",
+  paddingBottom: "100%",
+});
+
+const ButtonStartScan = styled.button({
+  width: "80px",
+  height: "80px",
+  borderRadius: "10000px",
+  boxShadow: "0px 0px 8px #0004",
+  fontSize: "14px",
+  fontWeight: "bold",
+  color: "#444",
+  margin: "24px 0px",
+});
+
+const BackButton = styled.button({
+  position: "absolute",
+  top: "24px",
+  left: "24px",
+  padding: "4px 16px",
+  color: "#FFF",
 });
 
 const Home: NextPage = () => {
+  const refQrCode = useRef<HTMLVideoElement>(null);
+  const [apiQrCode, setApiQrCode] = useState<QrScanner>();
+  const [hasCamera, setHasCamera] = useState("");
+  const [isStartScan, setIsStartScan] = useState(false);
+  const [urlOpen, setUrlOpen] = useState("");
+
+  const onDecode = (scanResult: QrScanner.ScanResult) => {
+    setUrlOpen(scanResult.data);
+    setIsStartScan(false);
+  };
+
+  const onStart = () => {
+    setIsStartScan(true);
+  };
+
+  const onStop = () => {
+    setIsStartScan(false);
+  };
+
+  const onInitQrCode = async () => {
+    const qrCodeElement = refQrCode.current;
+
+    if (qrCodeElement) {
+      const qrScanner = new QrScanner(qrCodeElement, onDecode, { highlightScanRegion: true });
+      const list = await QrScanner.listCameras(true);
+      const isHasCamera = await QrScanner.hasCamera();
+
+      setHasCamera(String(isHasCamera));
+      setApiQrCode(qrScanner);
+    }
+  };
+
+  useEffect(() => {
+    onInitQrCode();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (isStartScan) {
+      apiQrCode?.start();
+    } else {
+      apiQrCode?.stop();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isStartScan]);
+
   return (
     <Container>
       <Head>
@@ -29,7 +136,29 @@ const Home: NextPage = () => {
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <Main>
-        <Title>Hello QR Code APP</Title>
+        <Title>
+          SCAN
+          <wbr /> TO
+          <wbr /> DETECT
+          <wbr /> QR CODE
+        </Title>
+        <ImageLayout>
+          <ImageWrapper>
+            <Image src="/scan-logo.png" alt="scan-logo" width="100%" height="100%" layout="fill" />
+          </ImageWrapper>
+        </ImageLayout>
+        {urlOpen && (
+          <a href={urlOpen} target="line://ti/p/7jkh2zWe1y" rel="noreferrer noopener">
+            open
+          </a>
+        )}
+        <ButtonStartScan onClick={onStart}>SCAN</ButtonStartScan>
+        <QrCodeStream ref={refQrCode} isStartScan={isStartScan} />
+        {isStartScan && (
+          <QrCodeDialog>
+            <BackButton onClick={onStop}>BACK</BackButton>
+          </QrCodeDialog>
+        )}
       </Main>
     </Container>
   );
